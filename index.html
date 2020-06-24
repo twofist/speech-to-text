@@ -1,0 +1,74 @@
+<html>
+    <h2 id="intro"></h2>
+    <h2 id="listen" style="background-color: red;">awaiting keyword...</h2>
+    <h1 id="text"></h1>
+    <script>
+        var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition;
+        var SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList;
+        var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent;
+
+        let recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.lang = "en-US";
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        let speechRecognitionList = new SpeechGrammarList();
+        let keywordStart = "hey google";
+        let keywordCancel = "google stop";
+        let keywords = [keywordStart, keywordCancel];
+        let grammar = `#JSGF V1.0; grammar phrase; public <phrase> = ${keywords.join(" | ")};`;
+        let keywordHasBeenSaid = false;
+
+        speechRecognitionList.addFromString(grammar, 1);
+        recognition.grammars = speechRecognitionList;
+
+        intro.innerHTML = `say "${keywordStart}" to start speech to text and "${keywordCancel}" to remove the written text`;
+
+        recognition.onstart = function () {
+            console.log("start");
+        };
+
+        recognition.onerror = function (event) {
+            console.log("error");
+        };
+
+        recognition.onend = function () {
+            recognition.start();
+        };
+
+        recognition.onresult = function (event) {
+            let interim_transcript = "";
+            let final_transcript = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    final_transcript += event.results[i][0].transcript;
+                } else {
+                    interim_transcript += event.results[i][0].transcript;
+                }
+            }
+            console.log("final: ", final_transcript);
+            console.log("interim: ", interim_transcript);
+            if (final_transcript) {
+                if (keywordHasBeenSaid) {
+                    text.innerHTML = final_transcript;
+                    keywordHasBeenSaid = false;
+                    listen.innerHTML = "awaiting keyword...";
+                    listen.style.backgroundColor = "red";
+                }
+                if (final_transcript.toLowerCase().trim() === keywordStart.toLowerCase().trim()) {
+                    console.log("keyword correct");
+                    keywordHasBeenSaid = true;
+                    listen.innerHTML = "awaiting sentence...";
+                    listen.style.backgroundColor = "green";
+                }
+                if (final_transcript.toLowerCase().trim() === keywordCancel.toLowerCase().trim()) {
+                    console.log("keyword canceled");
+                    text.innerHTML = "";
+                }
+            }
+        };
+
+        recognition.start();
+    </script>
+</html>
